@@ -35,3 +35,4 @@
 *.recipe
 *.ilk
 /obj
+/.vs
