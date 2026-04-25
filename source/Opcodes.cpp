@@ -436,8 +436,6 @@ int ml::opcode_call_function(lua_State* L) {
     return 1;
 }
 
-// ==================== INPUT & CAMERA ====================
-
 int ml::opcode_is_key_pressed(lua_State* L) {
     int vk = luaL_checkint(L, 1);
     lua_pushboolean(L, (GetAsyncKeyState(vk) & 0x8000) != 0);
@@ -466,8 +464,6 @@ int ml::opcode_get_camera_target(lua_State* L) {
     lua_pushnumber(L, pos.z + forward.z);
     return 3;
 }
-
-// ==================== PLAYER & PED ====================
 
 int ml::opcode_get_player_ped(lua_State* L) {
     int playerId = luaL_checkint(L, 1);
@@ -503,8 +499,6 @@ int ml::opcode_set_ped_collision(lua_State* L) {
     return 0;
 }
 
-// ==================== CAR ====================
-
 int ml::opcode_set_car_collision(lua_State* L) {
     CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
     bool enable = lua_toboolean(L, 2) != 0;
@@ -519,8 +513,6 @@ int ml::opcode_does_car_exist(lua_State* L) {
     lua_pushboolean(L, car != nullptr);
     return 1;
 }
-
-// ==================== GAME ====================
 
 int ml::opcode_set_player_can_enter_exit_vehicles(lua_State* L) {
     int playerId = luaL_checkint(L, 1);
