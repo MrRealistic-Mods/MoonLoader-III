@@ -39,9 +39,20 @@ namespace ml {
 
     int opcode_wait(lua_State* L);
     int opcode_test_cheat(lua_State* L);
+    int opcode_is_key_pressed(lua_State* L);
+    int opcode_get_frame_delta_time(lua_State* L);
+    int opcode_get_camera_position(lua_State* L);
+    int opcode_get_camera_target(lua_State* L);
+    int opcode_get_player_ped(lua_State* L);
     int opcode_is_player_playing(lua_State* L);
+    int opcode_is_char_in_any_car(lua_State* L);
+    int opcode_get_player_car(lua_State* L);
     int opcode_get_player_coords(lua_State* L);
     int opcode_set_player_coords(lua_State* L);
+    int opcode_set_car_collision(lua_State* L);
+    int opcode_set_ped_collision(lua_State* L);
+    int opcode_set_player_can_enter_exit_vehicles(lua_State* L);
+    int opcode_does_car_exist(lua_State* L);
     int opcode_create_ped(lua_State* L);
     int opcode_delete_ped(lua_State* L);
     int opcode_set_ped_coords(lua_State* L);

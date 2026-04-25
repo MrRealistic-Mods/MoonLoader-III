@@ -39,6 +39,9 @@
 #include <CVehicle.h>
 #include <CPlayerInfo.h>
 #include <common.h>
+#include <CCamera.h>
+#include <CTimer.h>
+#include <CFont.h>
 
 using namespace plugin;
 
@@ -83,34 +86,46 @@ static ml::Script* GetScript(lua_State* L) {
 }
 
 void ml::RegisterOpcodes(lua_State* L) {
-    lua_pushcfunction(L, opcode_wait);              lua_setglobal(L, "wait");
-    lua_pushcfunction(L, opcode_test_cheat);        lua_setglobal(L, "test_cheat");
-    lua_pushcfunction(L, opcode_is_player_playing); lua_setglobal(L, "is_player_playing");
-    lua_pushcfunction(L, opcode_get_player_coords); lua_setglobal(L, "get_player_coords");
-    lua_pushcfunction(L, opcode_set_player_coords); lua_setglobal(L, "set_player_coords");
-    lua_pushcfunction(L, opcode_create_ped);        lua_setglobal(L, "create_ped");
-    lua_pushcfunction(L, opcode_delete_ped);        lua_setglobal(L, "delete_ped");
-    lua_pushcfunction(L, opcode_set_ped_coords);    lua_setglobal(L, "set_ped_coords");
-    lua_pushcfunction(L, opcode_get_ped_coords);    lua_setglobal(L, "get_ped_coords");
-    lua_pushcfunction(L, opcode_is_ped_in_car);     lua_setglobal(L, "is_ped_in_car");
-    lua_pushcfunction(L, opcode_create_car);        lua_setglobal(L, "create_car");
-    lua_pushcfunction(L, opcode_delete_car);        lua_setglobal(L, "delete_car");
-    lua_pushcfunction(L, opcode_set_car_coords);    lua_setglobal(L, "set_car_coords");
-    lua_pushcfunction(L, opcode_get_car_coords);    lua_setglobal(L, "get_car_coords");
-    lua_pushcfunction(L, opcode_set_car_health);    lua_setglobal(L, "set_car_health");
-    lua_pushcfunction(L, opcode_get_car_health);    lua_setglobal(L, "get_car_health");
-    lua_pushcfunction(L, opcode_get_game_timer);    lua_setglobal(L, "get_game_timer");
-    lua_pushcfunction(L, opcode_load_model);        lua_setglobal(L, "load_model");
-    lua_pushcfunction(L, opcode_has_model_loaded);  lua_setglobal(L, "has_model_loaded");
-    lua_pushcfunction(L, opcode_load_all_models_now); lua_setglobal(L, "load_all_models_now");
+    lua_pushcfunction(L, opcode_wait);                  lua_setglobal(L, "wait");
+    lua_pushcfunction(L, opcode_test_cheat);            lua_setglobal(L, "test_cheat");
+    lua_pushcfunction(L, opcode_is_key_pressed);        lua_setglobal(L, "is_key_pressed");
+    lua_pushcfunction(L, opcode_get_frame_delta_time);  lua_setglobal(L, "get_frame_delta_time");
+    lua_pushcfunction(L, opcode_get_camera_position);   lua_setglobal(L, "get_camera_position");
+    lua_pushcfunction(L, opcode_get_camera_target);     lua_setglobal(L, "get_camera_target");
+    lua_pushcfunction(L, opcode_get_player_ped);        lua_setglobal(L, "get_player_ped");
+    lua_pushcfunction(L, opcode_is_player_playing);     lua_setglobal(L, "is_player_playing");
+    lua_pushcfunction(L, opcode_is_char_in_any_car);    lua_setglobal(L, "is_char_in_any_car");
+    lua_pushcfunction(L, opcode_get_player_car);        lua_setglobal(L, "get_player_car");
+    lua_pushcfunction(L, opcode_get_player_coords);     lua_setglobal(L, "get_player_coords");
+    lua_pushcfunction(L, opcode_set_player_coords);     lua_setglobal(L, "set_player_coords");
+    lua_pushcfunction(L, opcode_set_car_collision);     lua_setglobal(L, "set_car_collision");
+    lua_pushcfunction(L, opcode_set_ped_collision);     lua_setglobal(L, "set_ped_collision");
+    lua_pushcfunction(L, opcode_set_player_can_enter_exit_vehicles);
+    lua_setglobal(L, "set_player_can_enter_exit_vehicles");
+    lua_pushcfunction(L, opcode_does_car_exist);        lua_setglobal(L, "does_car_exist");
+    lua_pushcfunction(L, opcode_create_ped);            lua_setglobal(L, "create_ped");
+    lua_pushcfunction(L, opcode_delete_ped);            lua_setglobal(L, "delete_ped");
+    lua_pushcfunction(L, opcode_set_ped_coords);        lua_setglobal(L, "set_ped_coords");
+    lua_pushcfunction(L, opcode_get_ped_coords);        lua_setglobal(L, "get_ped_coords");
+    lua_pushcfunction(L, opcode_is_ped_in_car);         lua_setglobal(L, "is_ped_in_car");
+    lua_pushcfunction(L, opcode_create_car);            lua_setglobal(L, "create_car");
+    lua_pushcfunction(L, opcode_delete_car);            lua_setglobal(L, "delete_car");
+    lua_pushcfunction(L, opcode_set_car_coords);        lua_setglobal(L, "set_car_coords");
+    lua_pushcfunction(L, opcode_get_car_coords);        lua_setglobal(L, "get_car_coords");
+    lua_pushcfunction(L, opcode_set_car_health);        lua_setglobal(L, "set_car_health");
+    lua_pushcfunction(L, opcode_get_car_health);        lua_setglobal(L, "get_car_health");
+    lua_pushcfunction(L, opcode_get_game_timer);        lua_setglobal(L, "get_game_timer");
+    lua_pushcfunction(L, opcode_load_model);            lua_setglobal(L, "load_model");
+    lua_pushcfunction(L, opcode_has_model_loaded);      lua_setglobal(L, "has_model_loaded");
+    lua_pushcfunction(L, opcode_load_all_models_now);   lua_setglobal(L, "load_all_models_now");
     lua_pushcfunction(L, opcode_mark_model_as_no_longer_needed);
     lua_setglobal(L, "mark_model_as_no_longer_needed");
-    lua_pushcfunction(L, opcode_request_model);     lua_setglobal(L, "request_model");
-    lua_pushcfunction(L, opcode_read_memory);       lua_setglobal(L, "read_memory");
-    lua_pushcfunction(L, opcode_write_memory);      lua_setglobal(L, "write_memory");
-    lua_pushcfunction(L, opcode_call_function);     lua_setglobal(L, "call_function");
-    lua_pushcfunction(L, opcode_print_string);      lua_setglobal(L, "print_string");
-    lua_pushcfunction(L, opcode_print_big);         lua_setglobal(L, "print_big");
+    lua_pushcfunction(L, opcode_request_model);         lua_setglobal(L, "request_model");
+    lua_pushcfunction(L, opcode_read_memory);           lua_setglobal(L, "read_memory");
+    lua_pushcfunction(L, opcode_write_memory);          lua_setglobal(L, "write_memory");
+    lua_pushcfunction(L, opcode_call_function);         lua_setglobal(L, "call_function");
+    lua_pushcfunction(L, opcode_print_string);          lua_setglobal(L, "print_string");
+    lua_pushcfunction(L, opcode_print_big);             lua_setglobal(L, "print_big");
 }
 
 int ml::opcode_wait(lua_State* L) {
@@ -382,15 +397,35 @@ int ml::opcode_write_memory(lua_State* L) {
 
 int ml::opcode_print_string(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
-    int time = luaL_optint(L, 2, 3000);
-    Log::System(std::string("[PRINT_STRING] ") + text + " (time: " + std::to_string(time) + ")");
+    CFont::InitPerFrame();
+    CFont::SetOrientation(ALIGN_LEFT);
+    CFont::SetBackgroundOff();
+    CFont::SetCentreOff();
+    CFont::SetJustifyOn();
+    CFont::SetScale(0.4f, 0.8f);
+    CFont::SetColor(CRGBA(255, 255, 255, 255));
+    CFont::SetFontStyle(FONT_BANK);
+    CFont::SetDropShadowPosition(1);
+    CFont::SetDropColor(CRGBA(0, 0, 0, 255));
+    CFont::SetWrapx(640.0f);
+    CFont::PrintString(10.0f, 10.0f, text);
     return 0;
 }
 
 int ml::opcode_print_big(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
-    int time = luaL_optint(L, 2, 5000);
-    Log::System(std::string("[PRINT_BIG] ") + text + " (time: " + std::to_string(time) + ")");
+    CFont::InitPerFrame();
+    CFont::SetOrientation(ALIGN_LEFT);
+    CFont::SetBackgroundOff();
+    CFont::SetCentreOff();
+    CFont::SetJustifyOn();
+    CFont::SetScale(0.8f, 1.6f);
+    CFont::SetColor(CRGBA(255, 200, 0, 255));
+    CFont::SetFontStyle(FONT_HEADING);
+    CFont::SetDropShadowPosition(2);
+    CFont::SetDropColor(CRGBA(0, 0, 0, 255));
+    CFont::SetWrapx(640.0f);
+    CFont::PrintString(10.0f, 80.0f, text);
     return 0;
 }
 
@@ -399,4 +434,100 @@ int ml::opcode_call_function(lua_State* L) {
     Log::System("call_function called - implement calling convention handler");
     lua_pushinteger(L, 0);
     return 1;
+}
+
+// ==================== INPUT & CAMERA ====================
+
+int ml::opcode_is_key_pressed(lua_State* L) {
+    int vk = luaL_checkint(L, 1);
+    lua_pushboolean(L, (GetAsyncKeyState(vk) & 0x8000) != 0);
+    return 1;
+}
+
+int ml::opcode_get_frame_delta_time(lua_State* L) {
+    lua_pushnumber(L, CTimer::ms_fTimeStep);
+    return 1;
+}
+
+int ml::opcode_get_camera_position(lua_State* L) {
+    CVector pos = TheCamera.GetPosition();
+    lua_pushnumber(L, pos.x);
+    lua_pushnumber(L, pos.y);
+    lua_pushnumber(L, pos.z);
+    return 3;
+}
+
+int ml::opcode_get_camera_target(lua_State* L) {
+    CMatrix* matrix = TheCamera.GetCameraMatrix();
+    CVector pos = matrix->pos;
+    CVector forward = matrix->at;
+    lua_pushnumber(L, pos.x + forward.x);
+    lua_pushnumber(L, pos.y + forward.y);
+    lua_pushnumber(L, pos.z + forward.z);
+    return 3;
+}
+
+// ==================== PLAYER & PED ====================
+
+int ml::opcode_get_player_ped(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    lua_pushinteger(L, reinterpret_cast<lua_Integer>(ped));
+    return 1;
+}
+
+int ml::opcode_is_char_in_any_car(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    lua_pushboolean(L, ped && ped->m_pVehicle != nullptr);
+    return 1;
+}
+
+int ml::opcode_get_player_car(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    if (ped && ped->m_pVehicle) {
+        lua_pushinteger(L, reinterpret_cast<lua_Integer>(ped->m_pVehicle));
+    }
+    else {
+        lua_pushinteger(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_set_ped_collision(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    bool enable = lua_toboolean(L, 2) != 0;
+    if (ped) {
+        ped->bUsesCollision = enable;
+    }
+    return 0;
+}
+
+// ==================== CAR ====================
+
+int ml::opcode_set_car_collision(lua_State* L) {
+    CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
+    bool enable = lua_toboolean(L, 2) != 0;
+    if (car) {
+        car->bUsesCollision = enable;
+    }
+    return 0;
+}
+
+int ml::opcode_does_car_exist(lua_State* L) {
+    CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
+    lua_pushboolean(L, car != nullptr);
+    return 1;
+}
+
+// ==================== GAME ====================
+
+int ml::opcode_set_player_can_enter_exit_vehicles(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    bool enable = lua_toboolean(L, 2) != 0;
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    if (ped) {
+        ped->bCanPedEnterSeekedCar = enable;
+    }
+    return 0;
 }
