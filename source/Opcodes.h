@@ -36,7 +36,7 @@ extern "C" {
 namespace ml {
     void RegisterOpcodes(lua_State* L);
     void UpdateCheatBuffer();
-    
+
     int opcode_wait(lua_State* L);
     int opcode_test_cheat(lua_State* L);
     int opcode_is_player_playing(lua_State* L);
@@ -55,8 +55,8 @@ namespace ml {
     int opcode_get_car_health(lua_State* L);
     int opcode_get_game_timer(lua_State* L);
     int opcode_load_model(lua_State* L);
-    int opcode_is_model_available(lua_State* L);
     int opcode_has_model_loaded(lua_State* L);
+    int opcode_load_all_models_now(lua_State* L);
     int opcode_mark_model_as_no_longer_needed(lua_State* L);
     int opcode_request_model(lua_State* L);
     int opcode_read_memory(lua_State* L);

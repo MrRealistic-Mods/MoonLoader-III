@@ -40,7 +40,7 @@ ml::LuaManager& ml::LuaManager::Get() {
 
 void ml::LuaManager::Init() {
     ScanDirectory();
-    Log::Info("LuaManager initialized with " + std::to_string(scripts.size()) + " scripts");
+    Log::System("LuaManager initialized with " + std::to_string(scripts.size()) + " scripts");
 }
 
 void ml::LuaManager::Shutdown() {
@@ -67,10 +67,6 @@ void ml::LuaManager::LoadScript(const std::string& path) {
     auto script = std::make_unique<Script>(path, name);
     if (script->Load()) {
         scripts.push_back(std::move(script));
-        Log::Info("Loaded script: " + name);
-    }
-    else {
-        Log::Error("Script failed to load: " + name);
     }
 }
 

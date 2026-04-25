@@ -42,5 +42,5 @@ void ml::GameHooks::Install() {
         LuaManager::Get().Init();
         };
 
-    Log::Info("GameHooks installed");
+    Log::System("GameHooks installed");
 }

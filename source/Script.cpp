@@ -30,19 +30,29 @@
 #include "Log.h"
 #include "Opcodes.h"
 
-static int LuaPrint(lua_State* L) {
+int ml::Script::nextScriptId = 1;
+
+static ml::Script* GetScriptFromState(lua_State* L) {
+    lua_pushlightuserdata(L, (void*)L);
+    lua_gettable(L, LUA_REGISTRYINDEX);
+    auto* s = static_cast<ml::Script*>(lua_touserdata(L, -1));
+    lua_pop(L, 1);
+    return s;
+}
+
+int ml::Script::LuaPrint(lua_State* L) {
     int n = lua_gettop(L);
     std::string line;
-
-    if (n == 0) {
-        ml::Log::Info("[LUA] ");
-        return 0;
+    auto* script = GetScriptFromState(L);
+    std::string prefix = "[LUA]";
+    if (script && !script->GetDisplayName().empty()) {
+        prefix = script->GetDisplayName();
     }
 
     lua_getglobal(L, "tostring");
     if (!lua_isfunction(L, -1)) {
         lua_pop(L, 1);
-        ml::Log::Info("[LUA] <tostring missing>");
+        ml::Log::System(prefix + ": <tostring missing>");
         return 0;
     }
 
@@ -50,7 +60,6 @@ static int LuaPrint(lua_State* L) {
         lua_pushvalue(L, -1);
         lua_pushvalue(L, i);
         if (lua_pcall(L, 1, 1, 0) != 0) {
-            ml::Log::Error("[LUA] print pcall error: " + std::string(lua_tostring(L, -1)));
             lua_pop(L, 1);
             continue;
         }
@@ -63,12 +72,7 @@ static int LuaPrint(lua_State* L) {
     }
     lua_pop(L, 1);
 
-    if (line.empty()) {
-        ml::Log::Info("[LUA] <nil>");
-    }
-    else {
-        ml::Log::Info("[LUA] " + line);
-    }
+    ml::Log::System(prefix + ": " + (line.empty() ? "<nil>" : line));
     return 0;
 }
 
@@ -79,7 +83,11 @@ static int LuaPanic(lua_State* L) {
 }
 
 ml::Script::Script(const std::string& fp, const std::string& n)
-    : filepath(fp), name(n), status(Status::RUNNING), waitTime(0), waitStart(0), thread(nullptr) {
+    : filepath(fp), name(n), displayName(n), id(nextScriptId++),
+    status(Status::RUNNING), waitTime(0), waitStart(0), thread(nullptr) {
+    size_t dot = displayName.find_last_of('.');
+    if (dot != std::string::npos) displayName = displayName.substr(0, dot);
+
     L = luaL_newstate();
     luaL_openlibs(L);
     lua_atpanic(L, LuaPanic);
@@ -100,8 +108,6 @@ ml::Script::~Script() {
 }
 
 bool ml::Script::Load() {
-    lua_pushstring(L, name.c_str());
-    lua_setglobal(L, "script_name");
     lua_pushstring(L, filepath.c_str());
     lua_setglobal(L, "script_path");
 
@@ -110,7 +116,18 @@ bool ml::Script::Load() {
     lua_pushcfunction(L, LuaPrint);
     lua_setglobal(L, "print");
 
+    lua_pushcfunction(L, LuaScriptName);
+    lua_setglobal(L, "script_name");
+    lua_pushcfunction(L, LuaScriptAuthor);
+    lua_setglobal(L, "script_author");
+    lua_pushcfunction(L, LuaScriptDescription);
+    lua_setglobal(L, "script_description");
+    lua_pushcfunction(L, LuaScriptVersion);
+    lua_setglobal(L, "script_version");
+
     RegisterOpcodes(L);
+
+    Log::System("Loading script \"" + filepath + "\"...\t(id:" + std::to_string(id) + ")");
 
     if (luaL_loadfile(L, filepath.c_str()) != LUA_OK) {
         Log::Error("Failed to load " + name + ": " + lua_tostring(L, -1));
@@ -135,12 +152,18 @@ bool ml::Script::Load() {
 
     int result = lua_resume(thread, 0);
     if (result != LUA_OK && result != LUA_YIELD) {
-        Log::Error("Runtime error in " + name + ": " + lua_tostring(thread, -1));
+        Log::Error("Runtime error in " + displayName + ": " + lua_tostring(thread, -1));
         lua_pop(thread, 1);
         status = Status::DEAD;
         return false;
     }
-    if (result == LUA_OK) status = Status::DEAD;
+    if (result == LUA_OK) {
+        Log::System(displayName + ": Script terminated. (id:" + std::to_string(id) + ")");
+        status = Status::DEAD;
+    }
+    else {
+        Log::System(displayName + ": Loaded successfully.");
+    }
     return true;
 }
 
@@ -161,11 +184,12 @@ void ml::Script::Update() {
         return;
     }
     else if (result != LUA_OK) {
-        Log::Error("Runtime error in " + name + ": " + lua_tostring(thread, -1));
+        Log::Error("Runtime error in " + displayName + ": " + lua_tostring(thread, -1));
         lua_pop(thread, 1);
         status = Status::DEAD;
     }
     else {
+        Log::System(displayName + ": Script terminated. (id:" + std::to_string(id) + ")");
         status = Status::DEAD;
     }
 }
@@ -192,10 +216,42 @@ void ml::Script::SetGlobal(const char* name, int value) {
 
 int ml::Script::LuaWait(lua_State* L) {
     int ms = luaL_checkint(L, 1);
-    lua_pushlightuserdata(L, (void*)L);
-    lua_gettable(L, LUA_REGISTRYINDEX);
-    Script* script = static_cast<Script*>(lua_touserdata(L, -1));
-    lua_pop(L, 1);
+    auto* script = GetScriptFromState(L);
     if (script) script->Wait(ms);
     return lua_yield(L, 0);
+}
+
+int ml::Script::LuaScriptName(lua_State* L) {
+    auto* script = GetScriptFromState(L);
+    if (!script) return 0;
+    if (lua_gettop(L) >= 1 && lua_isstring(L, 1)) {
+        script->displayName = lua_tostring(L, 1);
+        return 0;
+    }
+    lua_pushstring(L, script->displayName.c_str());
+    return 1;
+}
+
+int ml::Script::LuaScriptAuthor(lua_State* L) {
+    auto* script = GetScriptFromState(L);
+    if (script && lua_gettop(L) >= 1 && lua_isstring(L, 1)) {
+        script->author = lua_tostring(L, 1);
+    }
+    return 0;
+}
+
+int ml::Script::LuaScriptDescription(lua_State* L) {
+    auto* script = GetScriptFromState(L);
+    if (script && lua_gettop(L) >= 1 && lua_isstring(L, 1)) {
+        script->description = lua_tostring(L, 1);
+    }
+    return 0;
+}
+
+int ml::Script::LuaScriptVersion(lua_State* L) {
+    auto* script = GetScriptFromState(L);
+    if (script && lua_gettop(L) >= 1 && lua_isstring(L, 1)) {
+        script->version = lua_tostring(L, 1);
+    }
+    return 0;
 }

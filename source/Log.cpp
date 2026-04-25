@@ -31,6 +31,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <chrono>
 #include <windows.h>
 
 std::ofstream ml::Log::file;
@@ -44,35 +45,38 @@ void ml::Log::Init() {
 
     CreateDirectoryA(dir.c_str(), NULL);
     file.open(path, std::ios::out | std::ios::trunc);
-
-    if (file.is_open()) {
-        auto t = std::time(nullptr);
-        auto tm = *std::localtime(&t);
-        std::ostringstream oss;
-        oss << std::put_time(&tm, "[%H:%M:%S] [INFO] ") << "MoonLoader III initialized";
-        file << oss.str() << std::endl;
-    }
 }
 
-void ml::Log::Write(const std::string& msg) {
+void ml::Log::Write(const std::string& level, const std::string& msg) {
     std::lock_guard<std::mutex> lock(mtx);
-    if (file.is_open()) {
-        file << msg << std::endl;
-    }
+    if (!file.is_open()) return;
+
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    auto epoch_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        now.time_since_epoch()).count();
+    long us = static_cast<long>(epoch_us % 1000000);
+    if (us < 0) us += 1000000;
+
+    std::tm tm;
+    localtime_s(&tm, &time_t_now);
+
+    std::ostringstream oss;
+    oss << "[" << std::put_time(&tm, "%H:%M:%S") << "."
+        << std::setw(6) << std::setfill('0') << us << "] "
+        << "(" << level << ")\t" << msg;
+
+    file << oss.str() << std::endl;
 }
 
-void ml::Log::Info(const std::string& msg) {
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "[%H:%M:%S] [INFO] ") << msg;
-    Write(oss.str());
+void ml::Log::System(const std::string& msg) {
+    Write("system", msg);
+}
+
+void ml::Log::Debug(const std::string& msg) {
+    Write("debug", msg);
 }
 
 void ml::Log::Error(const std::string& msg) {
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "[%H:%M:%S] [ERROR] ") << msg;
-    Write(oss.str());
+    Write("error", msg);
 }

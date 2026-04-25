@@ -55,6 +55,8 @@ namespace ml {
 
         Status GetStatus() const { return status; }
         const std::string& GetName() const { return name; }
+        const std::string& GetDisplayName() const { return displayName; }
+        int GetId() const { return id; }
         lua_State* GetState() const { return L; }
 
         void Wait(int ms);
@@ -66,11 +68,22 @@ namespace ml {
         lua_State* thread;
         std::string filepath;
         std::string name;
+        std::string displayName;
+        std::string author;
+        std::string description;
+        std::string version;
+        int id;
         Status status;
         int waitTime;
         DWORD waitStart;
 
+        static int nextScriptId;
+
         static int LuaWait(lua_State* L);
-        static int LuaTerminate(lua_State* L);
+        static int LuaPrint(lua_State* L);
+        static int LuaScriptName(lua_State* L);
+        static int LuaScriptAuthor(lua_State* L);
+        static int LuaScriptDescription(lua_State* L);
+        static int LuaScriptVersion(lua_State* L);
     };
 }

@@ -101,8 +101,8 @@ void ml::RegisterOpcodes(lua_State* L) {
     lua_pushcfunction(L, opcode_get_car_health);    lua_setglobal(L, "get_car_health");
     lua_pushcfunction(L, opcode_get_game_timer);    lua_setglobal(L, "get_game_timer");
     lua_pushcfunction(L, opcode_load_model);        lua_setglobal(L, "load_model");
-    lua_pushcfunction(L, opcode_is_model_available);lua_setglobal(L, "is_model_available");
     lua_pushcfunction(L, opcode_has_model_loaded);  lua_setglobal(L, "has_model_loaded");
+    lua_pushcfunction(L, opcode_load_all_models_now); lua_setglobal(L, "load_all_models_now");
     lua_pushcfunction(L, opcode_mark_model_as_no_longer_needed);
     lua_setglobal(L, "mark_model_as_no_longer_needed");
     lua_pushcfunction(L, opcode_request_model);     lua_setglobal(L, "request_model");
@@ -327,16 +327,16 @@ int ml::opcode_load_model(lua_State* L) {
     return 0;
 }
 
-int ml::opcode_is_model_available(lua_State* L) {
-    int modelId = luaL_checkint(L, 1);
-    lua_pushboolean(L, CStreaming::ms_aInfoForModel[modelId].m_nLoadState == 1);
-    return 1;
-}
 
 int ml::opcode_has_model_loaded(lua_State* L) {
     int modelId = luaL_checkint(L, 1);
-    lua_pushboolean(L, CStreaming::ms_aInfoForModel[modelId].m_nLoadState == 1);
+    lua_pushboolean(L, CStreaming::ms_aInfoForModel[modelId].m_nLoadState != 0);
     return 1;
+}
+
+int ml::opcode_load_all_models_now(lua_State* L) {
+    CStreaming::LoadAllRequestedModels(false);
+    return 0;
 }
 
 int ml::opcode_mark_model_as_no_longer_needed(lua_State* L) {
@@ -380,23 +380,23 @@ int ml::opcode_write_memory(lua_State* L) {
     return 0;
 }
 
-int ml::opcode_call_function(lua_State* L) {
-    uintptr_t addr = (uintptr_t)lua_tointeger(L, 1);
-    Log::Info("call_function called - implement calling convention handler");
-    lua_pushinteger(L, 0);
-    return 1;
-}
-
 int ml::opcode_print_string(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
     int time = luaL_optint(L, 2, 3000);
-    Log::Info(std::string("[PRINT_STRING] ") + text + " (time: " + std::to_string(time) + ")");
+    Log::System(std::string("[PRINT_STRING] ") + text + " (time: " + std::to_string(time) + ")");
     return 0;
 }
 
 int ml::opcode_print_big(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
     int time = luaL_optint(L, 2, 5000);
-    Log::Info(std::string("[PRINT_BIG] ") + text + " (time: " + std::to_string(time) + ")");
+    Log::System(std::string("[PRINT_BIG] ") + text + " (time: " + std::to_string(time) + ")");
     return 0;
+}
+
+int ml::opcode_call_function(lua_State* L) {
+    uintptr_t addr = (uintptr_t)lua_tointeger(L, 1);
+    Log::System("call_function called - implement calling convention handler");
+    lua_pushinteger(L, 0);
+    return 1;
 }
