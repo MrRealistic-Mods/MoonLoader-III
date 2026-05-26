@@ -75,4 +75,7 @@ namespace ml {
     int opcode_call_function(lua_State* L);
     int opcode_print_string(lua_State* L);
     int opcode_print_big(lua_State* L);
+    int opcode_get_all_chars(lua_State* L);
+    int opcode_does_char_exist(lua_State* L);
+    int opcode_get_char_health(lua_State* L);
 }

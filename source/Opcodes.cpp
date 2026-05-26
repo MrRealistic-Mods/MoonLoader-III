@@ -126,6 +126,9 @@ void ml::RegisterOpcodes(lua_State* L) {
     lua_pushcfunction(L, opcode_call_function);         lua_setglobal(L, "call_function");
     lua_pushcfunction(L, opcode_print_string);          lua_setglobal(L, "print_string");
     lua_pushcfunction(L, opcode_print_big);             lua_setglobal(L, "print_big");
+    lua_pushcfunction(L, opcode_get_all_chars);         lua_setglobal(L, "get_all_chars");
+    lua_pushcfunction(L, opcode_does_char_exist);       lua_setglobal(L, "does_char_exist");
+    lua_pushcfunction(L, opcode_get_char_health);       lua_setglobal(L, "get_char_health");
 }
 
 int ml::opcode_wait(lua_State* L) {
@@ -522,4 +525,38 @@ int ml::opcode_set_player_can_enter_exit_vehicles(lua_State* L) {
         ped->bCanPedEnterSeekedCar = enable;
     }
     return 0;
+}
+
+int ml::opcode_get_all_chars(lua_State* L) {
+    lua_newtable(L);
+    auto* pool = CPools::ms_pPedPool;
+    if (pool) {
+        int index = 1;
+        for (int i = 0; i < pool->m_nSize; ++i) {
+            CPed* ped = pool->GetAt(i);
+            if (ped) {
+                lua_pushinteger(L, index++);
+                lua_pushinteger(L, reinterpret_cast<lua_Integer>(ped));
+                lua_settable(L, -3);
+            }
+        }
+    }
+    return 1;
+}
+
+int ml::opcode_does_char_exist(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    bool exists = false;
+    auto* pool = CPools::ms_pPedPool;
+    if (pool && ped) {
+        exists = pool->IsObjectValid(ped);
+    }
+    lua_pushboolean(L, exists);
+    return 1;
+}
+
+int ml::opcode_get_char_health(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    lua_pushinteger(L, ped ? static_cast<int>(ped->m_fHealth) : 0);
+    return 1;
 }
