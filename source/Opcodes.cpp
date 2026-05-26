@@ -750,8 +750,11 @@ int ml::opcode_get_all_chars(lua_State* L) {
 
 int ml::opcode_does_char_exist(lua_State* L) {
     CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
-    // Consistent with your does_car_exist implementation
-    lua_pushboolean(L, ped != nullptr);
+    bool exists = false;
+    if (CPools::ms_pPedPool && ped) {
+        exists = CPools::ms_pPedPool->IsObjectValid(ped);
+    }
+    lua_pushboolean(L, exists);
     return 1;
 }
 
