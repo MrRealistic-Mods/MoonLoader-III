@@ -102,7 +102,7 @@ namespace ml {
     int opcode_get_char_health(lua_State* L);
     int opcode_remove_all_char_weapons(lua_State* L);
 
-    // Car physics
+    // Vehicle
     int opcode_get_car_speed(lua_State* L);
     int opcode_get_car_heading(lua_State* L);
     int opcode_is_car_in_air(lua_State* L);

@@ -731,10 +731,9 @@ int ml::opcode_is_ped_on_foot(lua_State* L) {
 }
 
 int ml::opcode_get_all_chars(lua_State* L) {
-    lua_newtable(L); // Create the array table to return
+    lua_newtable(L);
     int index = 1;
 
-    // Using the pointer directly to avoid undefined type name errors
     if (CPools::ms_pPedPool) {
         int poolSize = CPools::ms_pPedPool->m_nSize;
         for (int i = 0; i < poolSize; i++) {
@@ -745,7 +744,7 @@ int ml::opcode_get_all_chars(lua_State* L) {
             }
         }
     }
-    return 1; // Return the table
+    return 1;
 }
 
 int ml::opcode_does_char_exist(lua_State* L) {
@@ -761,7 +760,6 @@ int ml::opcode_does_char_exist(lua_State* L) {
 int ml::opcode_get_char_health(lua_State* L) {
     CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
     if (ped) {
-        // Cast to int to match traditional CLEO/Moonloader logic (health is a float under the hood)
         lua_pushinteger(L, static_cast<int>(ped->m_fHealth));
     }
     else {
