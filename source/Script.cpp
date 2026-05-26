@@ -93,24 +93,19 @@ ml::Script::Script(const std::string& fp, const std::string& n)
     luaL_openlibs(L);
     lua_atpanic(L, LuaPanic);
 
-    std::string libPath = GetMoonLoaderPath() + "\\lib\\";
+    // Configure package.path and package.cpath to allow loading MoonSDK and custom scripts
+    std::string mlPath = GetMoonLoaderPath();
+    std::string luaPath = mlPath + "\\?.lua;" + mlPath + "\\lib\\?.lua;" + mlPath + "\\lib\\?\\init.lua";
+    std::string cPath = mlPath + "\\lib\\?.dll";
 
     lua_getglobal(L, "package");
+    if (lua_istable(L, -1)) {
+        lua_pushstring(L, luaPath.c_str());
+        lua_setfield(L, -2, "path");
 
-    lua_getfield(L, -1, "path");
-    std::string currentPath = lua_tostring(L, -1);
-    lua_pop(L, 1);
-    currentPath += ";" + libPath + "?.lua;" + libPath + "?\\init.lua";
-    lua_pushstring(L, currentPath.c_str());
-    lua_setfield(L, -2, "path");
-
-    lua_getfield(L, -1, "cpath");
-    std::string currentCPath = lua_tostring(L, -1);
-    lua_pop(L, 1);
-    currentCPath += ";" + libPath + "?.dll";
-    lua_pushstring(L, currentCPath.c_str());
-    lua_setfield(L, -2, "cpath");
-
+        lua_pushstring(L, cPath.c_str());
+        lua_setfield(L, -2, "cpath");
+    }
     lua_pop(L, 1);
 }
 
@@ -179,8 +174,51 @@ bool ml::Script::Load() {
         return false;
     }
     if (result == LUA_OK) {
-        Log::System(displayName + ": Script terminated. (id:" + std::to_string(id) + ")");
-        status = Status::DEAD;
+        // Check if global "main" function exists
+        lua_getglobal(L, "main");
+        if (lua_isfunction(L, -1)) {
+            // Pop the main function from L's stack
+            lua_pop(L, 1);
+
+            // Re-create the thread specifically for main
+            thread = lua_newthread(L);
+            lua_getglobal(L, "main");
+            lua_xmove(L, thread, 1);
+
+            // Keep the thread alive: registry[(void*)this] = thread
+            lua_pushlightuserdata(L, (void*)this);
+            lua_pushvalue(L, -2);
+            lua_settable(L, LUA_REGISTRYINDEX);
+
+            // Map thread to Script: registry[(void*)thread] = (void*)this
+            lua_pushlightuserdata(L, (void*)thread);
+            lua_pushlightuserdata(L, (void*)this);
+            lua_settable(L, LUA_REGISTRYINDEX);
+
+            // Pop thread from L's stack
+            lua_pop(L, 1);
+
+            // Resume the new thread running main()
+            result = lua_resume(thread, 0);
+            if (result != LUA_OK && result != LUA_YIELD) {
+                Log::Error("Runtime error in " + displayName + " (main): " + lua_tostring(thread, -1));
+                lua_pop(thread, 1);
+                status = Status::DEAD;
+                return false;
+            }
+            if (result == LUA_OK) {
+                Log::System(displayName + ": Script terminated. (id:" + std::to_string(id) + ")");
+                status = Status::DEAD;
+            }
+            else {
+                Log::System(displayName + ": Loaded successfully.");
+            }
+        }
+        else {
+            lua_pop(L, 1); // pop non-function "main"
+            Log::System(displayName + ": Script terminated. (id:" + std::to_string(id) + ")");
+            status = Status::DEAD;
+        }
     }
     else {
         Log::System(displayName + ": Loaded successfully.");
