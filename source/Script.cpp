@@ -29,6 +29,7 @@
 #include "Script.h"
 #include "Log.h"
 #include "Opcodes.h"
+#include "Utils.h"
 
 int ml::Script::nextScriptId = 1;
 
@@ -91,6 +92,30 @@ ml::Script::Script(const std::string& fp, const std::string& n)
     L = luaL_newstate();
     luaL_openlibs(L);
     lua_atpanic(L, LuaPanic);
+
+    // --- NEW: Setup Library Search Paths ---
+    std::string libPath = GetMoonLoaderPath() + "\\lib\\";
+
+    lua_getglobal(L, "package");
+
+    // 1. Update package.path to find .lua files in moonloader\lib
+    lua_getfield(L, -1, "path");
+    std::string currentPath = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    currentPath += ";" + libPath + "?.lua;" + libPath + "?\\init.lua";
+    lua_pushstring(L, currentPath.c_str());
+    lua_setfield(L, -2, "path");
+
+    // 2. Update package.cpath to find .dll files in moonloader\lib
+    lua_getfield(L, -1, "cpath");
+    std::string currentCPath = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    currentCPath += ";" + libPath + "?.dll";
+    lua_pushstring(L, currentCPath.c_str());
+    lua_setfield(L, -2, "cpath");
+
+    lua_pop(L, 1); // Pop the "package" table off the stack
+    // ---------------------------------------
 }
 
 ml::Script::~Script() {

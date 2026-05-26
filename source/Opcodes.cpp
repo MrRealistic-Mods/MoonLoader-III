@@ -42,6 +42,11 @@
 #include <CCamera.h>
 #include <CTimer.h>
 #include <CFont.h>
+#include <CWeaponInfo.h>
+#include <eWeaponType.h>
+#include <CPad.h>
+#include <CPools.h>
+#include <CPool.h>
 
 using namespace plugin;
 
@@ -126,6 +131,41 @@ void ml::RegisterOpcodes(lua_State* L) {
     lua_pushcfunction(L, opcode_call_function);         lua_setglobal(L, "call_function");
     lua_pushcfunction(L, opcode_print_string);          lua_setglobal(L, "print_string");
     lua_pushcfunction(L, opcode_print_big);             lua_setglobal(L, "print_big");
+
+    // Camera
+    lua_pushcfunction(L, opcode_set_camera_mode);       lua_setglobal(L, "set_camera_mode");
+    lua_pushcfunction(L, opcode_get_camera_mode);       lua_setglobal(L, "get_camera_mode");
+    lua_pushcfunction(L, opcode_set_camera_position);     lua_setglobal(L, "set_camera_position");
+    lua_pushcfunction(L, opcode_set_camera_target);     lua_setglobal(L, "set_camera_target");
+    lua_pushcfunction(L, opcode_set_camera_fov);        lua_setglobal(L, "set_camera_fov");
+    lua_pushcfunction(L, opcode_get_camera_fov);        lua_setglobal(L, "get_camera_fov");
+    lua_pushcfunction(L, opcode_set_camera_in_front_of_player);
+    lua_setglobal(L, "set_camera_in_front_of_player");
+    lua_pushcfunction(L, opcode_restore_camera);        lua_setglobal(L, "restore_camera");
+
+    // Input
+    lua_pushcfunction(L, opcode_is_mouse_button_pressed); lua_setglobal(L, "is_mouse_button_pressed");
+
+    // Weapon
+    lua_pushcfunction(L, opcode_get_player_weapon);     lua_setglobal(L, "get_player_weapon");
+    lua_pushcfunction(L, opcode_is_weapon_sniper);      lua_setglobal(L, "is_weapon_sniper");
+    lua_pushcfunction(L, opcode_is_player_aiming);      lua_setglobal(L, "is_player_aiming");
+    lua_pushcfunction(L, opcode_set_player_aiming);     lua_setglobal(L, "set_player_aiming");
+
+    // Char
+    lua_pushcfunction(L, opcode_get_ped_heading);       lua_setglobal(L, "get_ped_heading");
+    lua_pushcfunction(L, opcode_set_ped_heading);       lua_setglobal(L, "set_ped_heading");
+    lua_pushcfunction(L, opcode_is_ped_on_foot);        lua_setglobal(L, "is_ped_on_foot");
+    lua_pushcfunction(L, opcode_get_all_chars);         lua_setglobal(L, "get_all_chars");
+    lua_pushcfunction(L, opcode_does_char_exist);       lua_setglobal(L, "does_char_exist");
+    lua_pushcfunction(L, opcode_get_char_health);       lua_setglobal(L, "get_char_health");
+    lua_pushcfunction(L, opcode_remove_all_char_weapons); lua_setglobal(L, "remove_all_char_weapons");
+    lua_pushcfunction(L, opcode_remove_all_char_weapons); lua_setglobal(L, "removeAllCharWeapons");
+
+    // Vehicle
+    lua_pushcfunction(L, opcode_get_car_speed);         lua_setglobal(L, "get_car_speed");
+    lua_pushcfunction(L, opcode_get_car_heading);       lua_setglobal(L, "get_car_heading");
+    lua_pushcfunction(L, opcode_is_car_in_air);         lua_setglobal(L, "is_car_in_air");
 }
 
 int ml::opcode_wait(lua_State* L) {
@@ -522,4 +562,252 @@ int ml::opcode_set_player_can_enter_exit_vehicles(lua_State* L) {
         ped->bCanPedEnterSeekedCar = enable;
     }
     return 0;
+}
+
+// ==================== CAMERA ====================
+
+int ml::opcode_set_camera_mode(lua_State* L) {
+    short mode = (short)luaL_checkint(L, 1);
+    TheCamera.TakeControlNoEntity(CVector(0, 0, 0), 1, 1);
+    return 0;
+}
+
+int ml::opcode_get_camera_mode(lua_State* L) {
+    lua_pushinteger(L, TheCamera.m_nWhoIsInControlOfTheCamera);
+    return 1;
+}
+
+int ml::opcode_set_camera_position(lua_State* L) {
+    float x = (float)luaL_checknumber(L, 1);
+    float y = (float)luaL_checknumber(L, 2);
+    float z = (float)luaL_checknumber(L, 3);
+
+    TheCamera.TakeControlNoEntity(CVector(x, y, z), 1, 1);
+    return 0;
+}
+
+int ml::opcode_set_camera_target(lua_State* L) {
+    float x = (float)luaL_checknumber(L, 1);
+    float y = (float)luaL_checknumber(L, 2);
+    float z = (float)luaL_checknumber(L, 3);
+
+    TheCamera.m_vecFixedModeVector = CVector(x, y, z);
+    TheCamera.m_bLookingAtVector = true;
+    return 0;
+}
+
+int ml::opcode_restore_camera(lua_State* L) {
+    TheCamera.RestoreWithJumpCut();
+    TheCamera.m_bLookingAtVector = false;
+    return 0;
+}
+
+int ml::opcode_set_camera_fov(lua_State* L) {
+    float fov = (float)luaL_checknumber(L, 1);
+    TheCamera.m_fFOVWhenInterPol = fov;
+    return 0;
+}
+
+int ml::opcode_get_camera_fov(lua_State* L) {
+    lua_pushnumber(L, TheCamera.m_fFOVWhenInterPol);
+    return 1;
+}
+
+int ml::opcode_set_camera_in_front_of_player(lua_State* L) {
+    float dist = (float)luaL_checknumber(L, 1);
+    float height = (float)luaL_checknumber(L, 2);
+
+    CPed* ped = CWorld::Players[0].m_pPed;
+    if (!ped) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    CVector pos = ped->GetPosition();
+    float heading = ped->GetHeading();
+
+    float camX = pos.x - sin(heading) * dist;
+    float camY = pos.y + cos(heading) * dist;
+    float camZ = pos.z + height;
+
+    TheCamera.m_vecFixedModeSource = CVector(camX, camY, camZ);
+    TheCamera.m_vecFixedModeVector = pos;
+    TheCamera.m_bLookingAtVector = true;
+
+    lua_pushboolean(L, true);
+    return 1;
+}
+
+// ==================== INPUT ====================
+
+int ml::opcode_is_mouse_button_pressed(lua_State* L) {
+    int button = luaL_checkint(L, 1);
+    bool pressed = false;
+    if (button == 2) {
+        pressed = (GetAsyncKeyState(0x02) & 0x8000) != 0;
+    }
+    else if (button == 1) {
+        pressed = (GetAsyncKeyState(0x01) & 0x8000) != 0;
+    }
+    lua_pushboolean(L, pressed);
+    return 1;
+}
+
+// ==================== WEAPON ====================
+
+int ml::opcode_get_player_weapon(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    if (ped) {
+        CWeapon* weapon = ped->GetWeapon();
+        if (weapon) {
+            lua_pushinteger(L, static_cast<int>(weapon->m_eWeaponType));
+        }
+        else {
+            lua_pushinteger(L, 0);
+        }
+    }
+    else {
+        lua_pushinteger(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_is_weapon_sniper(lua_State* L) {
+    int weaponId = luaL_checkint(L, 1);
+    bool isSniper = (weaponId == 28 || weaponId == 29);
+    lua_pushboolean(L, isSniper);
+    return 1;
+}
+
+int ml::opcode_is_player_aiming(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    bool aiming = false;
+    if (ped) {
+        aiming = ped->bIsAimingGun;
+    }
+    lua_pushboolean(L, aiming);
+    return 1;
+}
+
+int ml::opcode_set_player_aiming(lua_State* L) {
+    int playerId = luaL_checkint(L, 1);
+    bool aim = lua_toboolean(L, 2) != 0;
+    CPed* ped = CWorld::Players[playerId].m_pPed;
+    if (ped) {
+        ped->bIsAimingGun = aim;
+        ped->bIsPointingGunAt = aim;
+    }
+    return 0;
+}
+
+// ==================== CHAR ====================
+
+int ml::opcode_get_ped_heading(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    if (ped) {
+        lua_pushnumber(L, ped->GetHeading());
+    }
+    else {
+        lua_pushnumber(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_set_ped_heading(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    float heading = (float)luaL_checknumber(L, 2);
+    if (ped) {
+        ped->SetHeading(heading);
+    }
+    return 0;
+}
+
+int ml::opcode_is_ped_on_foot(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    lua_pushboolean(L, ped && ped->m_pVehicle == nullptr);
+    return 1;
+}
+
+int ml::opcode_get_all_chars(lua_State* L) {
+    lua_newtable(L); // Create the array table to return
+    int index = 1;
+
+    // Using the pointer directly to avoid undefined type name errors
+    if (CPools::ms_pPedPool) {
+        int poolSize = CPools::ms_pPedPool->m_nSize;
+        for (int i = 0; i < poolSize; i++) {
+            CPed* ped = CPools::ms_pPedPool->GetAt(i);
+            if (ped) {
+                lua_pushinteger(L, reinterpret_cast<lua_Integer>(ped));
+                lua_rawseti(L, -2, index++);
+            }
+        }
+    }
+    return 1; // Return the table
+}
+
+int ml::opcode_does_char_exist(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    // Consistent with your does_car_exist implementation
+    lua_pushboolean(L, ped != nullptr);
+    return 1;
+}
+
+int ml::opcode_get_char_health(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    if (ped) {
+        // Cast to int to match traditional CLEO/Moonloader logic (health is a float under the hood)
+        lua_pushinteger(L, static_cast<int>(ped->m_fHealth));
+    }
+    else {
+        lua_pushinteger(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_remove_all_char_weapons(lua_State* L) {
+    CPed* ped = reinterpret_cast<CPed*>(lua_tointeger(L, 1));
+    if (ped) {
+        ped->ClearWeapons();
+    }
+    return 0;
+}
+
+// ==================== VEHICLE ====================
+
+int ml::opcode_get_car_speed(lua_State* L) {
+    CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
+    if (car) {
+        CVector vel = car->m_vecMoveSpeed;
+        float speed = sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z) * 50.0f;
+        lua_pushnumber(L, speed);
+    }
+    else {
+        lua_pushnumber(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_get_car_heading(lua_State* L) {
+    CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
+    if (car) {
+        lua_pushnumber(L, car->GetHeading());
+    }
+    else {
+        lua_pushnumber(L, 0);
+    }
+    return 1;
+}
+
+int ml::opcode_is_car_in_air(lua_State* L) {
+    CVehicle* car = reinterpret_cast<CVehicle*>(lua_tointeger(L, 1));
+    bool inAir = false;
+    if (car) {
+        float height = car->GetHeightAboveRoad();
+        inAir = (height > 0.5f);
+    }
+    lua_pushboolean(L, inAir);
+    return 1;
 }

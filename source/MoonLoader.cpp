@@ -39,10 +39,10 @@ ml::MoonLoader& ml::MoonLoader::Get() {
 void ml::MoonLoader::Initialize() {
     Log::Init();
     GameHooks::Install();
-    Log::System("MoonLoader III core initialized");
+    Log::System("MoonLoader initialized");
 }
 
 void ml::MoonLoader::Shutdown() {
     LuaManager::Get().Shutdown();
-    Log::System("MoonLoader III shutdown");
+    Log::System("MoonLoader shutdown");
 }

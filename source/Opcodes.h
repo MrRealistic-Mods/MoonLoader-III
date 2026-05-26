@@ -75,4 +75,35 @@ namespace ml {
     int opcode_call_function(lua_State* L);
     int opcode_print_string(lua_State* L);
     int opcode_print_big(lua_State* L);
+
+    // Camera
+    int opcode_set_camera_mode(lua_State* L);
+    int opcode_get_camera_mode(lua_State* L);
+    int opcode_set_camera_position(lua_State* L);
+    int opcode_set_camera_target(lua_State* L);
+    int opcode_set_camera_fov(lua_State* L);
+    int opcode_get_camera_fov(lua_State* L);
+    int opcode_set_camera_in_front_of_player(lua_State* L);
+    int opcode_restore_camera(lua_State* L);
+    int opcode_is_mouse_button_pressed(lua_State* L);
+
+    // Weapon
+    int opcode_get_player_weapon(lua_State* L);
+    int opcode_is_weapon_sniper(lua_State* L);
+    int opcode_is_player_aiming(lua_State* L);
+    int opcode_set_player_aiming(lua_State* L);
+
+    // Char
+    int opcode_get_ped_heading(lua_State* L);
+    int opcode_set_ped_heading(lua_State* L);
+    int opcode_is_ped_on_foot(lua_State* L);
+    int opcode_get_all_chars(lua_State* L);
+    int opcode_does_char_exist(lua_State* L);
+    int opcode_get_char_health(lua_State* L);
+    int opcode_remove_all_char_weapons(lua_State* L);
+
+    // Car physics
+    int opcode_get_car_speed(lua_State* L);
+    int opcode_get_car_heading(lua_State* L);
+    int opcode_is_car_in_air(lua_State* L);
 }
