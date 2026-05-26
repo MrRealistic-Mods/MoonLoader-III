@@ -36,3 +36,5 @@
 *.ilk
 /obj
 /.vs
+/.vscode
+build.ps1
